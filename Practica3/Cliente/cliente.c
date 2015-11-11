@@ -19,7 +19,7 @@ Autor: Juan Carlos Cuevas Martínez
 #include <winsock.h>
 #include <time.h>
 #include <conio.h>
-#include <string.h>
+
 #include "protocol.h"
 
 
@@ -30,23 +30,23 @@ int main(int *argc, char *argv[])
 {
 	SOCKET sockfd; // Definimos un socket, lo llamamos sockfd
 	struct sockaddr_in server_in; // Estructura basica para llamadas al sistema y funciones relacionada con direcciones de Internet
-	char buffer_in[1024], buffer_out[1024],input[1024],origen[20],destino[20],asunto[30],mensaje[1024]; // Buffers y entrada de datos
+	char buffer_in[1024], buffer_out[2048],input[2048],origen[15],destino[15],mensaje[500]="",asunto[20],copia[500],cad[10]; // Buffers y entrada de datos
 	int recibidos=0,enviados=0; // Variables para el envio y recepcion de los datos, ambas iniciadas a 0
 	int estado=S_HELO; // Estados de la conexion iniciado a S_HELO
 	char option; // Variable condicional para el bucle "do"
 	WORD wVersionRequested; // Para trabajar con sockets en Windows
 	WSADATA wsaData; // Para trabajar con sockets en Windows
-	int err; // Usamos "err" para la comprobacion de errores
+	int err,fin=0,opcion; // Usamos "err" para la comprobacion de errores
     char ipdest[16];// Declaramos la direccion IP destino
 	char default_ip[16]="127.0.0.1"; // Direccion IP establecida por defecto
-	int n,fin=0,contador=0,cabecera;
-	char opcion[5];
+	
 
 	/*Para la fecha y hora*/
 	time_t tiempo = time(0);
 	struct tm *tlocal = localtime(&tiempo);
 	char zona[10];
-	char output[128];
+	char output[20];
+
 	//Inicialización Windows sockets
 	wVersionRequested=MAKEWORD(1,1);
 	err=WSAStartup(wVersionRequested,&wsaData);
@@ -94,10 +94,21 @@ int main(int *argc, char *argv[])
 			{
 				printf("CLIENTE> CONEXION ESTABLECIDA CON %s:%d\r\n",ipdest,SMTP_SERVICE_PORT);
 			
-		
+			
 				//Inicio de la máquina de estados
 
 				do{
+					fflush(stdin); /*limpiamos el buffer de teclado*/
+						if(estado==S_QUIT  && strncmp(buffer_in,"2",1)==0)
+						{
+							printf("¿Deseas enviar otro correo?, si es así pulsa 1, en otro caso se saldrá\n");
+							scanf("%d",&opcion);
+							if(opcion==1)
+							{
+							estado=S_RCPT; /*Pasamos al estado de destinatario*/
+							}
+						 }
+			
 					switch(estado)
 					{
 
@@ -108,12 +119,16 @@ int main(int *argc, char *argv[])
 
 					case S_MAIL:
 						// establece la conexion de aplicacion 
-						printf("CLIENTE> Introduzca su usuario (enter para salir): ");
+						printf("CLIENTE> Introduzca su usuario: ");
 						gets(origen);
-						if(strlen(input)==0)
+						fflush(stdin);
+						if(strlen(origen)==0)
 						{
-							sprintf_s (buffer_out, sizeof(buffer_out), "%s%s",SD,CRLF);
-							estado=S_QUIT;
+							do{
+								printf("CLIENTE> Introduzca su usuario: ");
+								gets(origen);
+							}while(strlen(origen)==0);
+						sprintf_s (buffer_out, sizeof(buffer_out), "MAIL FROM: %s%s",origen,CRLF);
 						}
 						else
 						{
@@ -124,61 +139,53 @@ int main(int *argc, char *argv[])
 						break;
 
 					case S_RCPT:
-						printf("CLIENTE> Introduzca el destinatario (enter para salir): ");
+						fflush(stdin);
+						printf("CLIENTE> Introduzca el destinatario: ");
 						gets(destino);
-						if(strlen(input)==0)
+						if(strlen(destino)==0)
 						{
-							sprintf_s (buffer_out, sizeof(buffer_out), "%s%s",SD,CRLF);
-							estado=S_QUIT;
+							do{
+								printf("CLIENTE> Introduzca el destinatario: ");
+								gets(destino);
+								
+							}while(strlen(destino)==0);
+						sprintf_s (buffer_out, sizeof(buffer_out), "RCPT TO: %s%s",destino,CRLF);
 						}
 						else{
 						sprintf_s (buffer_out, sizeof(buffer_out), "RCPT TO: %s%s",destino,CRLF);
 						}
 						break;
-
-				case S_DATA:
+					case S_DATA:
 						sprintf_s (buffer_out, sizeof(buffer_out), "DATA%s",CRLF);
 						estado=S_MENSAJE;
 						break;
 				case S_MENSAJE:
-					/*
-					estado mesaje:
-					recibo=0
-					cuando el usuario ponga el . recibo=1;
-					if(recibo==1)
-					recv...
-					*/
-					 //uja_PPT_p3_g06
-					 if(contador==0)
-					 {
+					fflush(stdin);
 					 strftime(output,128,"%d/%m/%y %H:%M:%S",tlocal);				
 					 printf("Introduce el asunto del mensaje:");
-					 gets(asunto);
-					 sprintf_s(buffer_out, sizeof(buffer_out), "Date: %s GMT:%d%sFrom: <%s>%sSubject: %s%sTo: <%s>%s%s",output,getTimeZone(),CRLF,origen,CRLF,asunto,CRLF,destino,CRLF,CRLF);
-					 contador=1;
-					}
-					else{
-					 contador=0;
+					 gets(asunto);	
 					 printf("Introduce el mensaje: ");
-					 gets(mensaje);
-					 
-					 // sprintf_s (buffer_out, sizeof(buffer_out), "Date: %s%sFrom: %s%sTo: %s%sSubject: %s%s %s%s%s.%s",fecha,CRLF,origen,CRLF,destino,CRLF,asunto,CRLF,CRLF,mensaje,CRLF,CRLF);
-					 sprintf_s (buffer_out, sizeof(buffer_out), "%s%s.%s",mensaje,CRLF,CRLF);
-					}
+						do
+						{
+							gets(copia);
+							strcat(copia,"\r\n");  //agregamos al mensaje que introduce el cliente CRLF
+							strcat(mensaje,copia); //vamos agregando el mensaje con CRLF al propio mensaje que se va a enviar
+
+						}while(strcmp(copia,".\r\n")!=0);
+
+							sprintf_s(buffer_out, sizeof(buffer_out), "Date: %s GMT:%d%sFrom: <%s>%sSubject: %s%sTo: <%s>%s%s%s%s.%s",output,getTimeZone(),CRLF,origen,CRLF,asunto,CRLF,destino,CRLF,CRLF,mensaje,CRLF,CRLF);
+							printf("Date: %s GMT:%d%sFrom: <%s>%sSubject: %s%sTo: <%s>%s%s%s%s",output,getTimeZone(),CRLF,origen,CRLF,asunto,CRLF,destino,CRLF,CRLF,mensaje,CRLF);
+					break;
+
 				case S_QUIT:
 					sprintf_s (buffer_out, sizeof(buffer_out), "QUIT%s",CRLF);
 					fin=1;
-						break;
+					break;
 					}/*Cierre del switch*/
-			
-					//Envio
+								
+				
 					if(estado!=S_HELO){
-					// Ejercicio: Comprobar el estado de envio
-
-						// sockfd: socket que utilizamos
-						// buffer_out: buffer que usamos 
-						//(int)strlen(buffer_out): tamaño del buffer con los datos que vamos a enviar (en bytes)
-						// 0: flag, funcionamiento normal del protocolo.
+					
 						enviados=send(sockfd,buffer_out,(int)strlen(buffer_out),0);
 
 						if(enviados==SOCKET_ERROR || enviados==0)
@@ -197,11 +204,7 @@ int main(int *argc, char *argv[])
 						}
 					}
 						
-			
-						if(estado==S_MENSAJE && contador==1)
-						{
-							continue; /*Para que no reciba datos del servidor*/
-						}
+					
 					recibidos=recv(sockfd,buffer_in,512,0);
 
 					if(recibidos<=0) // Si recibimos 0 o -1
@@ -221,37 +224,23 @@ int main(int *argc, char *argv[])
 						}
 					}else{  // Si recibimos la cantidad de bytes enviados
 						buffer_in[recibidos]=0x00; // Iniciamos a 0 porque en C los arrays finalizan con el byte 0000 0000
-						printf(buffer_in);
-						printf(buffer_out);// Imprimimos por pantalla el valor
-						//if(estado!=S_DATA && strncmp(buffer_in,OK,2)==0) // Si no estamos en "estado=S_DATA" (DATA es el último estado) y hemos recibido un OK, podemos pasar al siguiente estado
-							//estado++;  
+						printf(buffer_in); // Imprimimos por pantalla el valor
+ 
 						if((estado==S_HELO || estado==S_MAIL || estado==S_RCPT || estado==S_MENSAJE) && strncmp(buffer_in,"2",1)==0)
 							estado++;
 						
 						if(estado==S_DATA && strncmp(buffer_in,"3",1)==0)
 							estado++;
+
 						
 					}
 
-				}while(fin!=1); // Se realiza el bucle mientras el estado sea distinto a "S_QUIT"
-				/*Enviar otro correo*/
-					printf("¿Enviar otro correo? Pulsa 1 para continuar, en otro caso, se saldrá\n");
-					 gets(opcion);
-					 if(opcion=="1")
-						 estado=S_MAIL;
-					 else
-					 {
-						estado=S_QUIT;
-					 }
+				}while(fin!=1); 
 			}
-
-
 			else
 			{
 				printf("CLIENTE> ERROR AL CONECTAR CON %s:%d\r\n",ipdest,SMTP_SERVICE_PORT); // Muestra el mensaje de error al conectar el cliente con la IP destino y el puerto TCP escogidos
-			}
-
-			
+			}		
 			// fin de la conexion de transporte
 			closesocket(sockfd);
 			
@@ -268,8 +257,6 @@ int main(int *argc, char *argv[])
 	return(0);
 
 }
-
-
 
 int getTimeZone()
 {
@@ -290,3 +277,13 @@ int getTimeZone()
 
 }
 
+/*
+
+
+estado mesaje:
+					recibo=0
+					cuando el usuario ponga el . recibo=1;
+					if(recibo==1)
+					recv...
+*/
+				
