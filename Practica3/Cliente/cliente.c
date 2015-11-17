@@ -192,15 +192,32 @@ int main(int *argc, char *argv[])
 									 
 					 printf("Introduce el mensaje: ");
 						do
-						{
+						{/********************************************* 
+						 NOTAS PROFESOR:
+						 No puedes hacer la comparación de la cadena con “.” así. 
+						 	if(copia!=”.”)
+
+							Esto no da error al compilar porque ambos con punteros y valores enteros.
+
+							Para comparar el contenido de dos cadenas usa la función strcmp:
+
+							If(strcmp(copia,”.”)!=0)
+							…
+
+							El otro error es que en la función send tienes puesto que envíe sizeof(buffer_out), que es todo el tamaño del buffer, y no strlen(buffer_out) que sería solo la longitud de lo que tiene valor correcto. Por eso te salían caracteres raros, porque se enviaban de verdad.
+
+							Cambia también lo de concatenar el \r\n antes de la cadena input.
+*/
+
 							gets(copia);
-							sprintf_s(buffer_out, sizeof(buffer_out), "%s%s%s\0",CRLF,copia,CRLF);
+							sprintf_s(buffer_out, sizeof(buffer_out), "%s%s%s\0",CRLF,copia,CRLF);/*<--------------------------- OJO:  CRLF,copia,CRLF*/
 						/*	for(i=0; i<strlen(copia); i++)
 								buffer_out[i] = '\0'; */
-							if(copia!=".")
+
+							if(copia!=".")/*<--------------------------- OJO*/
 							{
 							fflush(stdin);
-							enviados=send(sockfd,buffer_out,sizeof(buffer_out),0);
+							enviados=send(sockfd,buffer_out,sizeof(buffer_out),0);/*<--------------------------- OJO: sizeof(buffer_out)*/
 								if(enviados==SOCKET_ERROR || enviados==0)
 								{
 									if(enviados==SOCKET_ERROR)
