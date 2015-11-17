@@ -98,10 +98,11 @@ int main(int *argc, char *argv[])
 
 				do{
 					fflush(stdin); /*limpiamos el buffer de teclado*/
+
+					/*Enviar más de un correo*/
 						if(estado==S_QUIT  && strncmp(buffer_in,"2",1)==0)
 						{
 							char opcion;
-
 							printf("¿Deseas enviar otro correo? S/N\n");
 							opcion=getch();
 							if(opcion=='s' || opcion=='S')
@@ -124,23 +125,23 @@ int main(int *argc, char *argv[])
 
 					case S_MAIL:
 						// establece la conexion de aplicacion 
-						
 						printf("CLIENTE> Introduzca su usuario: ");
 						gets(origen);
-						fflush(stdin);
-						if(strlen(origen)==0)
+						if(strlen(origen)==0) /*Si no se introduce nada, se vuelve a pedir*/
 						{
 							do{
 								printf("CLIENTE> Introduzca su usuario: ");
 								gets(origen);
+
 							}while(strlen(origen)==0);
+
 						sprintf_s (buffer_out, sizeof(buffer_out), "MAIL FROM: %s%s",origen,CRLF);
+
 						}
 						else
 						{
-						/*Envia y recibe los datos asociados con el destinatario*/
+						/*Envia los datos asociados con el destinatario*/
 						sprintf_s (buffer_out, sizeof(buffer_out), "MAIL FROM: %s%s",origen,CRLF);
-
 						}
 						break;
 
@@ -150,17 +151,20 @@ int main(int *argc, char *argv[])
 						gets(destino);
 						if(strlen(destino)==0)
 						{
-							do{
-								printf("CLIENTE> Introduzca el destinatario: ");
-								gets(destino);
+								do{
+									printf("CLIENTE> Introduzca el destinatario: ");
+									gets(destino);
 								
-							}while(strlen(destino)==0);
-						sprintf_s (buffer_out, sizeof(buffer_out), "RCPT TO: %s%s",destino,CRLF);
+								}while(strlen(destino)==0);
+
+							sprintf_s (buffer_out, sizeof(buffer_out), "RCPT TO: %s%s",destino,CRLF);
 						}
-						else{
-						sprintf_s (buffer_out, sizeof(buffer_out), "RCPT TO: %s%s",destino,CRLF);
+						else
+						{
+							sprintf_s (buffer_out, sizeof(buffer_out), "RCPT TO: %s%s",destino,CRLF);
 						}
 						break;
+
 					case S_DATA:
 						sprintf_s (buffer_out, sizeof(buffer_out), "DATA%s",CRLF);
 						estado=S_MENSAJE;
@@ -169,11 +173,13 @@ int main(int *argc, char *argv[])
 					
 					 strftime(output,128,"%d/%m/%y %H:%M:%S",tlocal);				
 					 printf("Introduce el asunto del mensaje:");
-					 gets(asunto);	
-					 
-					 sprintf_s(buffer_out, sizeof(buffer_out), "Date: %s GMT:%d%sFrom: <%s>%sSubject: %s%sTo: <%s>%s",output,getTimeZone(),CRLF,origen,CRLF,asunto,CRLF,destino,CRLF);
+					 gets(asunto);
+
+					 /*Envio de las cabeceras*/
+					 sprintf_s(buffer_out, sizeof(buffer_out), "Date: %s GMT:%d%sFrom: <%s>%sSubject: %s%sTo: <%s>%s%s",output,getTimeZone(),CRLF,origen,CRLF,asunto,CRLF,destino,CRLF,CRLF);
 
 					 enviados=send(sockfd,buffer_out,(int)strlen(buffer_out),0);
+					 /*Comprobacion de envío correcto*/
 					 if(enviados==SOCKET_ERROR || enviados==0)
 						{
 							if(enviados==SOCKET_ERROR)
@@ -192,32 +198,13 @@ int main(int *argc, char *argv[])
 									 
 					 printf("Introduce el mensaje: ");
 						do
-						{/********************************************* 
-						 NOTAS PROFESOR:
-						 No puedes hacer la comparación de la cadena con “.” así. 
-						 	if(copia!=”.”)
-
-							Esto no da error al compilar porque ambos con punteros y valores enteros.
-
-							Para comparar el contenido de dos cadenas usa la función strcmp:
-
-							If(strcmp(copia,”.”)!=0)
-							…
-
-							El otro error es que en la función send tienes puesto que envíe sizeof(buffer_out), que es todo el tamaño del buffer, y no strlen(buffer_out) que sería solo la longitud de lo que tiene valor correcto. Por eso te salían caracteres raros, porque se enviaban de verdad.
-
-							Cambia también lo de concatenar el \r\n antes de la cadena input.
-*/
-
+						{
 							gets(copia);
-							sprintf_s(buffer_out, sizeof(buffer_out), "%s%s%s\0",CRLF,copia,CRLF);/*<--------------------------- OJO:  CRLF,copia,CRLF*/
-						/*	for(i=0; i<strlen(copia); i++)
-								buffer_out[i] = '\0'; */
-
-							if(copia!=".")/*<--------------------------- OJO*/
+							sprintf_s(buffer_out, sizeof(buffer_out), "%s%s",copia,CRLF);
+							if(strcmp(copia,".")!=0)  /*Solo se envia el mensaje si es distinto de '.'*/
 							{
-							fflush(stdin);
-							enviados=send(sockfd,buffer_out,sizeof(buffer_out),0);/*<--------------------------- OJO: sizeof(buffer_out)*/
+							enviados=send(sockfd,buffer_out,(int)strlen(buffer_out),0);
+							/*Comprobacion de envio correcto*/
 								if(enviados==SOCKET_ERROR || enviados==0)
 								{
 									if(enviados==SOCKET_ERROR)
@@ -234,14 +221,14 @@ int main(int *argc, char *argv[])
 								continue;
 								}
 							}
-						}while(strcmp(copia,".")!=0);
+						}while(strcmp(copia,".")!=0); /*Se va enviando todas las cadenas que introduce el cliente hasta introducir un .*/
 										
-						sprintf_s(buffer_out, sizeof(buffer_out), ".%s",CRLF);
+						sprintf_s(buffer_out, sizeof(buffer_out), ".%s",CRLF); /*metemos en el buffer_out el fin de mensaje*/
 						
 					break;
 
 				case S_QUIT:
-					sprintf_s (buffer_out, sizeof(buffer_out), "QUIT%s",CRLF);
+					sprintf_s (buffer_out, sizeof(buffer_out), "QUIT%s",CRLF); 
 					fin=1;
 					break;
 					}/*Cierre del switch*/
@@ -266,9 +253,8 @@ int main(int *argc, char *argv[])
 						}
 					}
 						
-					
+					/*Recibimos los datos del servidor*/
 					recibidos=recv(sockfd,buffer_in,512,0);
-					fflush(stdin);
 					
 					if(recibidos<=0) // Si recibimos 0 o -1
 					{
@@ -290,13 +276,12 @@ int main(int *argc, char *argv[])
 						buffer_in[recibidos]=0x00; // Iniciamos a 0 porque en C los arrays finalizan con el byte 0000 0000
 						printf(buffer_in); // Imprimimos por pantalla el valor
  
+						/*Comprobacion de envio correcto mediante las respuestas del servidor, todas empezaran por 2 (250,221) */
 						if((estado==S_WELCOME || estado==S_HELO || estado==S_MAIL || estado==S_RCPT || estado==S_MENSAJE) && strncmp(buffer_in,"2",1)==0)
 							estado++;
-						
+						/*La respuesta del servidor para DATA es 354*/
 						if(estado==S_DATA && strncmp(buffer_in,"3",1)==0)
 							estado++;
-
-						
 					}
 
 				}while(fin!=1); 
