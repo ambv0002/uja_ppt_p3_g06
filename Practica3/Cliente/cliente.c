@@ -220,7 +220,7 @@ int main(int *argc, char *argv[])
 						}while(strcmp(copia,".")!=0);
 										
 						sprintf_s(buffer_out, sizeof(buffer_out), ".%s",CRLF);
-						strcat(buffer_out,"\0");
+						
 					break;
 
 				case S_QUIT:
