@@ -3,15 +3,12 @@ Protocolos de Transporte
 Grado en Ingeniería Telemática
 Dpto. Ingeníería de Telecomunicación
 Univerisdad de Jaén
-
 Fichero: cliente.c
 Versión: 1.0
 Fecha: 23/09/2012
 Descripción:
 	Cliente de eco sencillo TCP.
-
 Autor: Juan Carlos Cuevas Martínez
-
 *******************************************************/
 
 /* **Pareja de trabajo: Macarena Barselo Vazquez y Begoña Calvo Castillo** */
@@ -62,7 +59,7 @@ int main(int *argc, char *argv[])
 	/* Con "do" se crea el socket en el que se recibiran y se enviaran los datos */
 
 	do{
-		sockfd=socket(AF_INET,SOCK_STREAM,0);
+		sockfd=socket(AF_INET,SOCK_STREAM,0);  //Creamos socket
 
 		if(sockfd==INVALID_SOCKET) // Si el socket es invalido, mostramos un error por pantalla.
 		{
@@ -111,7 +108,7 @@ int main(int *argc, char *argv[])
 							}
 						 }
 				
-					switch(estado)
+					switch(estado)  //Maquina de estados
 					{
 
 					case S_WELCOME:
@@ -124,7 +121,7 @@ int main(int *argc, char *argv[])
 						break;
 
 					case S_MAIL:
-						// establece la conexion de aplicacion 
+						// Establece la conexion de aplicacion 
 						printf("CLIENTE> Introduzca su usuario: ");
 						gets(origen);
 						if(strlen(origen)==0) /*Si no se introduce nada, se vuelve a pedir*/
@@ -133,79 +130,80 @@ int main(int *argc, char *argv[])
 								printf("CLIENTE> Introduzca su usuario: ");
 								gets(origen);
 
-							}while(strlen(origen)==0);
+							}while(strlen(origen)==0); //Repetimos la peticion de usuario hasta cumplir la condicion
 
-						sprintf_s (buffer_out, sizeof(buffer_out), "MAIL FROM: %s%s",origen,CRLF);
+						sprintf_s (buffer_out, sizeof(buffer_out), "MAIL FROM: %s%s",origen,CRLF);  //Guardamos MAIL FROM en el buffer junto al usuario origen
 
 						}
 						else
 						{
-						/*Envia los datos asociados con el destinatario*/
-						sprintf_s (buffer_out, sizeof(buffer_out), "MAIL FROM: %s%s",origen,CRLF);
+						sprintf_s (buffer_out, sizeof(buffer_out), "MAIL FROM: %s%s",origen,CRLF); //Guardamos MAIL FROM en el buffer junto al usuario origen
 						}
 						break;
 
 					case S_RCPT:
-						
+						// Introducimos el destinatario del mail
 						printf("CLIENTE> Introduzca el destinatario: ");
 						gets(destino);
-						if(strlen(destino)==0)
-						{
+						if(strlen(destino)==0)  /*Si no se introduce nada, se vuelve a pedir*/
+
+						{ 
 								do{
 									printf("CLIENTE> Introduzca el destinatario: ");
 									gets(destino);
 								
-								}while(strlen(destino)==0);
+								}while(strlen(destino)==0); //Repetimos la peticion de usuario hasta cumplir la condicion
 
-							sprintf_s (buffer_out, sizeof(buffer_out), "RCPT TO: %s%s",destino,CRLF);
+							sprintf_s (buffer_out, sizeof(buffer_out), "RCPT TO: %s%s",destino,CRLF); //Guardamos RCPT TO en el buffer junto al destinatario
 						}
 						else
 						{
-							sprintf_s (buffer_out, sizeof(buffer_out), "RCPT TO: %s%s",destino,CRLF);
+							sprintf_s (buffer_out, sizeof(buffer_out), "RCPT TO: %s%s",destino,CRLF); //Guardamos RCPT TO en el buffer junto al destinatario
 						}
 						break;
 
 					case S_DATA:
+				// Empieza el envio del cuerpo del mensaje
 						sprintf_s (buffer_out, sizeof(buffer_out), "DATA%s",CRLF);
 						estado=S_MENSAJE;
 						break;
 				case S_MENSAJE:
-					
-					 strftime(output,128,"%d/%m/%y %H:%M:%S",tlocal);				
+					// Escribimos el mensaje
+					 strftime(output,128,"%d/%m/%y %H:%M:%S",tlocal);				//Fecha, hora y zona horaria
 					 printf("Introduce el asunto del mensaje:");
-					 gets(asunto);
+					 gets(asunto); // Asunto del email
 
 					 /*Envio de las cabeceras*/
-					 sprintf_s(buffer_out, sizeof(buffer_out), "Date: %s GMT:%d%sFrom: <%s>%sSubject: %s%sTo: <%s>%s%s",output,getTimeZone(),CRLF,origen,CRLF,asunto,CRLF,destino,CRLF,CRLF);
+					 sprintf_s(buffer_out, sizeof(buffer_out), "Date: %s GMT:%d%sFrom: <%s>%sSubject: %s%sTo: <%s>%s%s",output,getTimeZone(),CRLF,origen,CRLF,asunto,CRLF,destino,CRLF,CRLF); // Cabeceras del correo según RFC
 
 					 enviados=send(sockfd,buffer_out,(int)strlen(buffer_out),0);
 					 /*Comprobacion de envío correcto*/
-					 if(enviados==SOCKET_ERROR || enviados==0)
+					 if(enviados==SOCKET_ERROR || enviados==0) // Si ha habido error en el socket o no hay datos enviados
 						{
 							if(enviados==SOCKET_ERROR)
 							{
 							DWORD error=GetLastError();
-							printf("CLIENTE> Error %d en el envío de datos\r\n",error);
+							printf("CLIENTE> Error %d en el envío de datos\r\n",error); // Error 
 							fin=1;
 							}
 							else
 							{
-							printf("CLIENTE> Conexión con el servidor cerrada\r\n");
+							printf("CLIENTE> Conexión con el servidor cerrada\r\n"); // Cerramos conexion
 							fin=1;
 							}
 							continue;
 						}
 									 
-					 printf("Introduce el mensaje: ");
+					 printf("Introduce el mensaje: "); // Introducimos el mensaje
 						do
 						{
 							gets(copia);
 							sprintf_s(buffer_out, sizeof(buffer_out), "%s%s",copia,CRLF);
-							if(strcmp(copia,".")!=0)  /*Solo se envia el mensaje si es distinto de '.'*/
+							if(strcmp(copia,".")!=0)  /*Solo se envia el mensaje si es distinto de '.'*/ 
 							{
 							enviados=send(sockfd,buffer_out,(int)strlen(buffer_out),0);
 							/*Comprobacion de envio correcto*/
-								if(enviados==SOCKET_ERROR || enviados==0)
+								if(enviados==SOCKET_ERROR || enviados==0) // Error o sin datos enviados
 								{
 									if(enviados==SOCKET_ERROR)
 									{
@@ -221,22 +219,23 @@ int main(int *argc, char *argv[])
 								continue;
 								}
 							}
-						}while(strcmp(copia,".")!=0); /*Se va enviando todas las cadenas que introduce el cliente hasta introducir un .*/
+						}while(strcmp(copia,".")!=0); /*Se van enviando todas las cadenas que introduce el cliente hasta introducir un "."*/
 										
-						sprintf_s(buffer_out, sizeof(buffer_out), ".%s",CRLF); /*metemos en el buffer_out el fin de mensaje*/
+						sprintf_s(buffer_out, sizeof(buffer_out), ".%s",CRLF); /*Metemos en el buffer_out el fin de mensaje*/
 						
 					break;
 
 				case S_QUIT:
+//Fin
 					sprintf_s (buffer_out, sizeof(buffer_out), "QUIT%s",CRLF); 
 					fin=1;
 					break;
 					}/*Cierre del switch*/
 								
 				
-					if(estado!=S_WELCOME){
+					if(estado!=S_WELCOME){ //Si no estamos en WELCOME, se produce el envio
 						enviados=send(sockfd,buffer_out,(int)strlen(buffer_out),0);
-						if(enviados==SOCKET_ERROR || enviados==0)
+						if(enviados==SOCKET_ERROR || enviados==0) // Si hay error o no hay datos enviados, mostramos los errores
 						{
 							if(enviados==SOCKET_ERROR)
 							{
@@ -261,7 +260,7 @@ int main(int *argc, char *argv[])
 						DWORD error=GetLastError();
 						if(recibidos<0) // Si recibimos un -1 o SOCKET_ERROR la operacion ha fallado
 						{
-							printf("CLIENTE> Error %d en la recepción de datos\r\n",error);  // Salimos con "estado=S_QUIT"
+							printf("CLIENTE> Error %d en la recepción de datos\r\n",error); 
 							fin=1;
 						}
 						else // Si recibimos un 0, la conexion ha sido liberada de forma acordada
@@ -307,7 +306,7 @@ int main(int *argc, char *argv[])
 
 }
 
-int getTimeZone()
+int getTimeZone() // Funcion para la zona horaria, por ejemplo, GMT +1
 {
    TIME_ZONE_INFORMATION tziOld;
 	DWORD dwRet;
@@ -325,4 +324,3 @@ int getTimeZone()
    }
 
 }
-				
